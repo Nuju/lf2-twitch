@@ -9,7 +9,7 @@
 :root{
   --bg:#0e0e10;--panel:#18181b;--panel2:#202024;--line:#34343b;
   --text:#efeff1;--muted:#adadb8;--accent:#9147ff;--accent2:#772ce8;
-  --danger:#6a3038;--ok:#41a55c;
+  --danger:#6a3038;--ok:#41a55c;--offline:#6b6b75;--warn:#b98b3d;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans JP",sans-serif}
@@ -20,6 +20,7 @@ h1{font-size:40px;margin:0 0 5px} h1 span{font-size:15px;color:var(--muted);font
 .topbar p{margin:0;color:var(--muted);font-size:18px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:18px}
 .sectionHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.sectionActions{display:flex;align-items:center;gap:10px}
 h2{font-size:25px;margin:0}
 .count{display:inline-flex;min-width:38px;height:38px;align-items:center;justify-content:center;border-radius:999px;background:var(--panel2);color:var(--muted)}
 input,button{font:inherit}
@@ -28,26 +29,43 @@ button{border:0;border-radius:12px;color:white;cursor:pointer}
 button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 .primary{background:var(--accent);font-size:22px;font-weight:700;min-height:66px;padding:0 20px}
 .primary:hover{background:var(--accent2)}
-.ghost{background:#2b2b31;color:#ddd}.small{min-height:46px;padding:0 15px;font-size:16px}
+.ghost{background:#2b2b31;color:#ddd}
+.small{min-height:46px;padding:0 15px;font-size:16px}
 .addRow,.openRow{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:12px}
 .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .card{display:grid;grid-template-columns:minmax(0,1fr) 74px;gap:9px}
-.watch{min-height:78px;text-align:left;padding:0 20px;background:#26262c;font-size:25px;font-weight:700}
-.watch:hover{background:#303038}.remove{min-height:78px;background:var(--danger);font-size:28px}.star{background:#3a3251}
+.watch{min-height:78px;text-align:left;padding:0 20px;background:#26262c;font-size:23px;font-weight:700;display:flex;align-items:center;gap:12px}
+.watch:hover{background:#303038}
+.remove{min-height:78px;background:var(--danger);font-size:28px}
+.star{background:#3a3251}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:86px;height:34px;border-radius:999px;font-size:14px;font-weight:700;letter-spacing:.03em;flex:0 0 auto}
+.badge.live{background:#8f2432;color:white}
+.badge.offline{background:#3a3a42;color:#c6c6cd}
+.badge.unknown{background:#4c442f;color:#e6cf91}
+.badge.loading{background:#34343b;color:#b9b9c0}
+.liveMeta{margin:-5px 0 14px;color:var(--muted);font-size:15px;min-height:20px}
 .empty{color:var(--muted);border:1px dashed #414149;border-radius:12px;padding:18px;margin-bottom:14px}
 .status{margin-top:14px;min-height:28px;color:#bf94ff;font-size:18px}.status.error{color:#ff8c99}.status.ok{color:#7bd88f}
 .help{color:#d5d5da;line-height:1.65}.help p{margin:8px 0}.kbd{display:inline-block;background:#29292f;border:1px solid #45454d;border-radius:6px;padding:2px 7px}
 .tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .tools button{min-height:50px;padding:0 16px;background:#303036;font-size:16px}
 .fileInput{display:none}
-@media(max-width:850px){body{padding:14px}h1{font-size:31px}.topbar{align-items:flex-start}.addRow,.openRow,.cards{grid-template-columns:1fr}.card{grid-template-columns:minmax(0,1fr) 70px}}
+@media(max-width:850px){
+  body{padding:14px}
+  h1{font-size:31px}
+  .topbar{align-items:flex-start}
+  .addRow,.openRow,.cards{grid-template-columns:1fr}
+  .card{grid-template-columns:minmax(0,1fr) 70px}
+  .sectionHead{align-items:flex-start}
+  .sectionActions{flex-wrap:wrap;justify-content:flex-end}
+}
 </style>
 </head>
 <body>
 <main class="shell">
   <header class="topbar">
     <div>
-      <h1>LF2 Twitch Lite <span>v0.3</span></h1>
+      <h1>LF2 Twitch Lite <span>v0.4</span></h1>
       <p>Panasonic TH-43LF2Y 向け軽量Twitchランチャー</p>
     </div>
     <button id="clearStatus" class="small ghost" type="button">状態を消す</button>
@@ -56,8 +74,12 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
   <section class="panel">
     <div class="sectionHead">
       <h2>お気に入り</h2>
-      <span id="favoriteCount" class="count">0</span>
+      <div class="sectionActions">
+        <span id="favoriteCount" class="count">0</span>
+        <button id="refreshLive" class="small ghost" type="button">LIVE更新</button>
+      </div>
     </div>
+    <div id="liveMeta" class="liveMeta"></div>
     <div id="favoritesEmpty" class="empty">まだお気に入りはありません。下から追加できます。</div>
     <div id="favorites" class="cards"></div>
     <div class="addRow" style="margin-top:16px">
@@ -97,6 +119,7 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
   <section class="panel help">
     <h2 style="margin-bottom:12px">使い方</h2>
     <p>配信者を選ぶと、重いTwitch公式サイト全体ではなく <strong>player.twitch.tv</strong> を直接開きます。</p>
+    <p>お気に入りのLIVE状態は起動時と約5分ごとに更新し、LIVE中を先頭へ並べます。</p>
     <p><span class="kbd">戻る</span> でこのランチャーへ戻れます。</p>
   </section>
 </main>
@@ -106,6 +129,11 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 var FAVORITES='lf2TwitchLite.favorites.v1';
 var RECENT='lf2TwitchLite.recent.v1';
 var MAX_RECENT=10;
+var LIVE_REFRESH_MS=300000;
+var liveState={};
+var lastLiveUpdate=0;
+var liveRefreshRunning=false;
+
 var favoritesEl=document.getElementById('favorites');
 var recentEl=document.getElementById('recent');
 var favoritesEmpty=document.getElementById('favoritesEmpty');
@@ -114,36 +142,258 @@ var favoriteCount=document.getElementById('favoriteCount');
 var favoriteInput=document.getElementById('favoriteInput');
 var channelInput=document.getElementById('channelInput');
 var statusEl=document.getElementById('status');
+var liveMetaEl=document.getElementById('liveMeta');
+var refreshLiveBtn=document.getElementById('refreshLive');
 
-function load(key){try{var v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
-function save(key,v){try{localStorage.setItem(key,JSON.stringify(v));return true}catch(e){setStatus('保存に失敗しました: '+e.message,'error');return false}}
-function normalize(v){v=(v||'').trim();var m=v.match(/^(?:https?:\/\/)?(?:www\.)?twitch\.tv\/([A-Za-z0-9_]{2,40})(?:[\/?#].*)?$/i);if(m)v=m[1];return /^[A-Za-z0-9_]{2,40}$/.test(v)?v.toLowerCase():''}
-function playerUrl(c){return 'https://player.twitch.tv/?channel='+encodeURIComponent(c)+'&parent=twitch.tv&player=popout&autoplay=true&muted=false'}
-function setStatus(t,kind){statusEl.textContent=t;statusEl.className='status'+(kind?' '+kind:'')}
-function addRecent(c){var r=load(RECENT).filter(function(x){return x!==c});r.unshift(c);save(RECENT,r.slice(0,MAX_RECENT))}
-function openChannel(v){var c=normalize(v);if(!c){setStatus('チャンネル名を確認してください。','error');return}addRecent(c);render();setStatus(c+' を開いています…','ok');location.href=playerUrl(c)}
-function addFavorite(v){var c=normalize(v);if(!c){setStatus('お気に入りに追加するチャンネル名を確認してください。','error');return}var f=load(FAVORITES);if(f.indexOf(c)!==-1){setStatus(c+' はすでにお気に入りです。');return}f.push(c);f.sort();if(save(FAVORITES,f)){favoriteInput.value='';setStatus(c+' をお気に入りに追加しました。','ok');render()}}
-function removeFavorite(c){save(FAVORITES,load(FAVORITES).filter(function(x){return x!==c}));setStatus(c+' をお気に入りから削除しました。');render()}
-function makeCard(c,isFavorite){var row=document.createElement('div');row.className='card';var watch=document.createElement('button');watch.type='button';watch.className='watch';watch.textContent='▶  '+c;watch.onclick=function(){openChannel(c)};var second=document.createElement('button');second.type='button';second.className=isFavorite?'remove':'remove star';second.textContent=isFavorite?'×':'☆';second.onclick=isFavorite?function(){removeFavorite(c)}:function(){addFavorite(c)};row.appendChild(watch);row.appendChild(second);return row}
-function renderFavorites(){var f=load(FAVORITES);favoritesEl.innerHTML='';favoriteCount.textContent=String(f.length);favoritesEmpty.style.display=f.length?'none':'block';f.forEach(function(c){favoritesEl.appendChild(makeCard(c,true))})}
-function renderRecent(){var r=load(RECENT),f=load(FAVORITES);recentEl.innerHTML='';recentEmpty.style.display=r.length?'none':'block';r.forEach(function(c){var row=makeCard(c,false);if(f.indexOf(c)!==-1){row.children[1].textContent='★';row.children[1].onclick=function(){setStatus(c+' はお気に入り登録済みです。')}}recentEl.appendChild(row)})}
-function render(){renderFavorites();renderRecent()}
+function load(key){
+  try{
+    var v=JSON.parse(localStorage.getItem(key)||'[]');
+    return Array.isArray(v)?v:[];
+  }catch(e){return []}
+}
+function save(key,v){
+  try{
+    localStorage.setItem(key,JSON.stringify(v));
+    return true;
+  }catch(e){
+    setStatus('保存に失敗しました: '+e.message,'error');
+    return false;
+  }
+}
+function normalize(v){
+  v=(v||'').trim();
+  var m=v.match(/^(?:https?:\/\/)?(?:www\.)?twitch\.tv\/([A-Za-z0-9_]{2,40})(?:[\/?#].*)?$/i);
+  if(m)v=m[1];
+  return /^[A-Za-z0-9_]{2,40}$/.test(v)?v.toLowerCase():'';
+}
+function playerUrl(c){
+  return 'https://player.twitch.tv/?channel='+encodeURIComponent(c)+'&parent=twitch.tv&player=popout&autoplay=true&muted=false';
+}
+function setStatus(t,kind){
+  statusEl.textContent=t;
+  statusEl.className='status'+(kind?' '+kind:'');
+}
+function addRecent(c){
+  var r=load(RECENT).filter(function(x){return x!==c});
+  r.unshift(c);
+  save(RECENT,r.slice(0,MAX_RECENT));
+}
+function openChannel(v){
+  var c=normalize(v);
+  if(!c){setStatus('チャンネル名を確認してください。','error');return}
+  addRecent(c);
+  render();
+  setStatus(c+' を開いています…','ok');
+  location.href=playerUrl(c);
+}
+function addFavorite(v){
+  var c=normalize(v);
+  if(!c){setStatus('お気に入りに追加するチャンネル名を確認してください。','error');return}
+  var f=load(FAVORITES);
+  if(f.indexOf(c)!==-1){setStatus(c+' はすでにお気に入りです。');return}
+  f.push(c);
+  f.sort();
+  if(save(FAVORITES,f)){
+    favoriteInput.value='';
+    liveState[c]='loading';
+    setStatus(c+' をお気に入りに追加しました。','ok');
+    render();
+    refreshLiveStatuses();
+  }
+}
+function removeFavorite(c){
+  save(FAVORITES,load(FAVORITES).filter(function(x){return x!==c}));
+  delete liveState[c];
+  setStatus(c+' をお気に入りから削除しました。');
+  render();
+}
+
+function statusRank(s){
+  if(s==='live')return 0;
+  if(s==='offline')return 1;
+  return 2;
+}
+function statusText(s){
+  if(s==='live')return '● LIVE';
+  if(s==='offline')return 'OFFLINE';
+  if(s==='loading')return '確認中';
+  return '不明';
+}
+function makeCard(c,isFavorite,withLive){
+  var row=document.createElement('div');
+  row.className='card';
+
+  var watch=document.createElement('button');
+  watch.type='button';
+  watch.className='watch';
+  watch.setAttribute('aria-label',c+' を見る');
+
+  if(withLive){
+    var badge=document.createElement('span');
+    var state=liveState[c]||'unknown';
+    badge.className='badge '+state;
+    badge.textContent=statusText(state);
+    watch.appendChild(badge);
+  }
+
+  var name=document.createElement('span');
+  name.textContent=c;
+  watch.appendChild(name);
+  watch.onclick=function(){openChannel(c)};
+
+  var second=document.createElement('button');
+  second.type='button';
+  second.className=isFavorite?'remove':'remove star';
+  second.textContent=isFavorite?'×':'☆';
+  second.onclick=isFavorite?function(){removeFavorite(c)}:function(){addFavorite(c)};
+
+  row.appendChild(watch);
+  row.appendChild(second);
+  return row;
+}
+function renderFavorites(){
+  var f=load(FAVORITES);
+  favoritesEl.innerHTML='';
+  favoriteCount.textContent=String(f.length);
+  favoritesEmpty.style.display=f.length?'none':'block';
+
+  f.sort(function(a,b){
+    var d=statusRank(liveState[a]||'unknown')-statusRank(liveState[b]||'unknown');
+    return d!==0?d:a.localeCompare(b);
+  });
+
+  f.forEach(function(c){
+    favoritesEl.appendChild(makeCard(c,true,true));
+  });
+  renderLiveMeta(f);
+}
+function renderRecent(){
+  var r=load(RECENT),f=load(FAVORITES);
+  recentEl.innerHTML='';
+  recentEmpty.style.display=r.length?'none':'block';
+
+  r.forEach(function(c){
+    var row=makeCard(c,false,false);
+    if(f.indexOf(c)!==-1){
+      row.children[1].textContent='★';
+      row.children[1].onclick=function(){setStatus(c+' はお気に入り登録済みです。')};
+    }
+    recentEl.appendChild(row);
+  });
+}
+function renderLiveMeta(f){
+  if(!f.length){
+    liveMetaEl.textContent='';
+    return;
+  }
+  var liveCount=0,unknownCount=0;
+  f.forEach(function(c){
+    if(liveState[c]==='live')liveCount++;
+    if(!liveState[c]||liveState[c]==='unknown'||liveState[c]==='loading')unknownCount++;
+  });
+  var text='LIVE '+liveCount+' / '+f.length;
+  if(lastLiveUpdate){
+    var d=new Date(lastLiveUpdate);
+    text+=' · '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+' 更新';
+  }
+  if(unknownCount&&!liveRefreshRunning)text+=' · 一部取得不可';
+  liveMetaEl.textContent=text;
+}
+function render(){
+  renderFavorites();
+  renderRecent();
+}
+
+function fetchLiveState(channel){
+  var url='https://decapi.me/twitch/uptime/'+encodeURIComponent(channel)+'?lang=en';
+  return fetch(url,{cache:'no-store'}).then(function(res){
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    return res.text();
+  }).then(function(text){
+    text=(text||'').trim();
+    if(/offline/i.test(text))return 'offline';
+    if(!text||/not found|invalid|error/i.test(text))return 'unknown';
+    return 'live';
+  }).catch(function(){
+    return 'unknown';
+  });
+}
+function refreshLiveStatuses(){
+  var f=load(FAVORITES);
+  if(liveRefreshRunning||!f.length){
+    render();
+    return;
+  }
+
+  liveRefreshRunning=true;
+  refreshLiveBtn.disabled=true;
+  refreshLiveBtn.textContent='更新中…';
+
+  f.forEach(function(c){
+    if(!liveState[c])liveState[c]='loading';
+  });
+  renderFavorites();
+
+  Promise.all(f.map(function(c){
+    return fetchLiveState(c).then(function(state){
+      liveState[c]=state;
+    });
+  })).then(function(){
+    lastLiveUpdate=Date.now();
+  }).catch(function(){
+  }).then(function(){
+    liveRefreshRunning=false;
+    refreshLiveBtn.disabled=false;
+    refreshLiveBtn.textContent='LIVE更新';
+    renderFavorites();
+  });
+}
 
 document.getElementById('addFavorite').onclick=function(){addFavorite(favoriteInput.value)};
 document.getElementById('openLite').onclick=function(){openChannel(channelInput.value)};
 document.getElementById('clearRecent').onclick=function(){save(RECENT,[]);setStatus('履歴を消去しました。');render()};
 document.getElementById('clearStatus').onclick=function(){setStatus('待機中')};
+document.getElementById('refreshLive').onclick=function(){refreshLiveStatuses()};
 favoriteInput.addEventListener('keydown',function(e){if(e.key==='Enter')addFavorite(favoriteInput.value)});
 channelInput.addEventListener('keydown',function(e){if(e.key==='Enter')openChannel(channelInput.value)});
 
 document.getElementById('exportData').onclick=function(){
   var data={version:1,favorites:load(FAVORITES),recent:load(RECENT)};
   var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='lf2-twitch-lite-settings.json';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000);
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='lf2-twitch-lite-settings.json';
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(url)},1000);
 };
-document.getElementById('importData').onclick=function(){document.getElementById('importFile').click()};
-document.getElementById('importFile').onchange=function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(){try{var d=JSON.parse(reader.result);if(!d||!Array.isArray(d.favorites)||!Array.isArray(d.recent))throw new Error('形式が違います');save(FAVORITES,d.favorites.map(normalize).filter(Boolean));save(RECENT,d.recent.map(normalize).filter(Boolean).slice(0,MAX_RECENT));setStatus('設定を読み込みました。','ok');render()}catch(err){setStatus('読み込み失敗: '+err.message,'error')}};reader.readAsText(file)};
+document.getElementById('importData').onclick=function(){
+  document.getElementById('importFile').click();
+};
+document.getElementById('importFile').onchange=function(e){
+  var file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(){
+    try{
+      var d=JSON.parse(reader.result);
+      if(!d||!Array.isArray(d.favorites)||!Array.isArray(d.recent))throw new Error('形式が違います');
+      save(FAVORITES,d.favorites.map(normalize).filter(Boolean));
+      save(RECENT,d.recent.map(normalize).filter(Boolean).slice(0,MAX_RECENT));
+      liveState={};
+      setStatus('設定を読み込みました。','ok');
+      render();
+      refreshLiveStatuses();
+    }catch(err){
+      setStatus('読み込み失敗: '+err.message,'error');
+    }
+  };
+  reader.readAsText(file);
+};
+
 render();
+setTimeout(refreshLiveStatuses,300);
+setInterval(refreshLiveStatuses,LIVE_REFRESH_MS);
 })();
 </script>
 </body>
