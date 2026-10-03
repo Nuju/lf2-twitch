@@ -29,6 +29,7 @@ button{border:0;border-radius:12px;color:white;cursor:pointer}
 button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 .primary{background:var(--accent);font-size:22px;font-weight:700;min-height:66px;padding:0 20px}
 .primary:hover{background:var(--accent2)}
+.resumeButton{width:100%;min-height:82px;text-align:left;font-size:25px}
 .ghost{background:#2b2b31;color:#ddd}
 .small{min-height:46px;padding:0 15px;font-size:16px}
 .addRow,.openRow{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:12px}
@@ -65,11 +66,15 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 <main class="shell">
   <header class="topbar">
     <div>
-      <h1>LF2 Twitch Lite <span>v0.4</span></h1>
+      <h1>LF2 Twitch Lite <span>v0.5</span></h1>
       <p>Panasonic TH-43LF2Y 向け軽量Twitchランチャー</p>
     </div>
     <button id="clearStatus" class="small ghost" type="button">状態を消す</button>
   </header>
+
+  <section id="resumePanel" class="panel" style="display:none">
+    <button id="resumeLast" class="primary resumeButton" type="button"></button>
+  </section>
 
   <section class="panel">
     <div class="sectionHead">
@@ -299,7 +304,21 @@ function renderLiveMeta(f){
   if(unknownCount&&!liveRefreshRunning)text+=' · 一部取得不可';
   liveMetaEl.textContent=text;
 }
+function renderResume(){
+  var r=load(RECENT);
+  var panel=document.getElementById('resumePanel');
+  var button=document.getElementById('resumeLast');
+  if(!r.length){
+    panel.style.display='none';
+    button.onclick=null;
+    return;
+  }
+  panel.style.display='block';
+  button.textContent='▶ 前回の「'+r[0]+'」を再生';
+  button.onclick=function(){openChannel(r[0])};
+}
 function render(){
+  renderResume();
   renderFavorites();
   renderRecent();
 }
