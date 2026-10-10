@@ -32,6 +32,9 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 .resumeButton{width:100%;min-height:82px;text-align:left;font-size:25px}
 .ghost{background:#2b2b31;color:#ddd}
 .small{min-height:46px;padding:0 15px;font-size:16px}
+.topActions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.chatShortcut{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.chatShortcut:focus{outline:5px solid #fff;outline-offset:3px}
 .addRow,.openRow{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:12px}
 .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .card{display:grid;grid-template-columns:minmax(0,1fr) 74px;gap:9px}
@@ -69,7 +72,10 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
       <h1>LF2 Twitch Lite <span>v0.5</span></h1>
       <p>Panasonic TH-43LF2Y 向け軽量Twitchランチャー</p>
     </div>
-    <button id="clearStatus" class="small ghost" type="button">状態を消す</button>
+    <div class="topActions">
+      <a class="small ghost chatShortcut" href="chat.html">チャット版へ →</a>
+      <button id="clearStatus" class="small ghost" type="button">状態を消す</button>
+    </div>
   </header>
 
   <section id="resumePanel" class="panel" style="display:none">
