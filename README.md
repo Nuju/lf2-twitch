@@ -2,28 +2,34 @@
 
 Panasonic TH-43LF2Y向けの軽量Twitchランチャーです。
 
-## v0.5
+## 通常版
 
-当面の完成ラインです。機能を増やしすぎず、テレビ上での軽さを優先しています。
+公開トップページの `index.html` は v0.5 のまま維持します。画面、操作、再生先は変更しません。
 
-### 実装済み
+- https://nuju.github.io/lf2-twitch/
 
-- お気に入りストリーマーの追加・削除
-- お気に入りの LIVE / OFFLINE 表示
-- LIVE中の配信者を先頭へ並べ替え
-- 起動時・約5分ごとのLIVE状態更新
-- 手動の「LIVE更新」
-- Twitch URL / チャンネル名から直接再生
-- 前回見たチャンネルを起動直後に1ボタンで再生
-- 最近見たチャンネルを最大10件保存
-- お気に入り・履歴をテレビ側 localStorage に保存
-- 設定のJSON書き出し・読み込み
-- PCによる動画中継なし
-- TH-43LF2Yのリモコンで扱いやすい大きめUI
+配信を選ぶと、これまで通り Twitch の軽量プレイヤーを直接開きます。
+
+## チャット付き視聴（別ルート・試験表示）
+
+通常版とは別に、チャット付き視聴専用の入口を追加します。
+
+- https://nuju.github.io/lf2-twitch/chat.html
+
+`chat.html` では、通常版で保存したお気に入りと履歴をそのまま共有します。ここから配信者を選んだ場合だけ `watch.html` を開き、左に映像、右に公式Twitchチャットを表示します。
+
+- 通常版の `index.html` は変更しない
+- お気に入り・履歴は通常版と共有
+- 「全体を全画面」で映像とチャットをまとめて全画面表示
+- 「チャットを隠す」でチャットの読み込みを終了し、映像領域を広げる
+- 「映像のみで開く」で従来の軽量プレイヤーへ移動
+- PCによる動画中継、独自サーバー、独自認証は追加しない
+
+**TH-43LF2Y実機での映像・チャットの同時表示、チャット更新、リモコン操作は未確認です。** Twitch側の埋め込みチャットがテレビのChromium 83で安定して動作するかは実機で確認します。
 
 ## LIVE判定
 
-v0.5では軽量性を優先し、DecAPI の Twitch uptime エンドポイントを使って LIVE / OFFLINE のみ判定しています。
+通常版 v0.5 は軽量性を優先し、DecAPI の Twitch uptime エンドポイントを使って LIVE / OFFLINE のみ判定しています。
 
 - Twitch Client ID / OAuth設定は不要
 - APIキーや秘密情報をPublicリポジトリに置かない
@@ -31,25 +37,19 @@ v0.5では軽量性を優先し、DecAPI の Twitch uptime エンドポイント
 - LIVE状態はDecAPI側で最大約5分キャッシュされるため、切り替わり直後は表示に遅延する場合があります
 - DecAPIが利用できない場合は状態を「不明」として扱い、視聴機能自体はそのまま使えます
 
-## GitHub Pages
-
-https://nuju.github.io/lf2-twitch/
-
 ## Twitch再生
 
-配信を選ぶと、Twitch公式サイト全体ではなく以下の軽量プレイヤーを直接開きます。
+通常版:
 
 https://player.twitch.tv/?channel=<channel>&parent=twitch.tv&player=popout&autoplay=true&muted=false
 
+チャット付き表示では `watch.html?channel=<channel>` から、公式の映像とチャットを別々のiframeとして読み込みます。埋め込み元を指定する `parent` はページの実際のホスト名を使用します。
+
+公式仕様:
+- [Embedding Chat](https://dev.twitch.tv/docs/embed/chat/)
+- [Embedding Video and Clips](https://dev.twitch.tv/docs/embed/video-and-clips/)
+- [Embedding Twitch](https://dev.twitch.tv/docs/embed/)
+
 ## 方針
 
-v0.5以降は一旦機能追加を止めます。
-実機で使って物足りないと感じた機能だけ、保留案から追加します。
-
-保留案:
-- 配信サムネイル
-- 配信タイトル
-- ゲームカテゴリ
-- 配信開始時刻
-- スマホからのお気に入り編集
-- Twitch公式APIを使った高度な連携
+通常版は現在の軽さと操作感を維持します。追加機能は通常版へ混ぜず、必要に応じて別ルートで試します。

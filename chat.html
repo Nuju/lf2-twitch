@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0e0e10">
+<title>LF2 Twitch Lite - Chat</title>
+<style>
+:root{--bg:#0e0e10;--panel:#18181b;--panel2:#202024;--line:#34343b;--text:#efeff1;--muted:#adadb8;--accent:#9147ff;--accent2:#772ce8}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans JP",sans-serif}
+body{padding:22px}
+.shell{max-width:1180px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}
+h1{font-size:40px;margin:0 0 5px} h1 span{font-size:15px;color:var(--muted);font-weight:normal}
+.topbar p{margin:0;color:var(--muted);font-size:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:18px}
+h2{font-size:25px;margin:0 0 15px}
+input,button{font:inherit}
+input{width:100%;min-height:66px;border-radius:12px;border:2px solid #47474f;background:#101014;color:white;padding:0 16px;font-size:24px}
+button,.link{border:0;border-radius:12px;color:white;cursor:pointer;text-decoration:none}
+button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
+.primary{background:var(--accent);font-size:22px;font-weight:700;min-height:66px;padding:0 20px}
+.primary:hover{background:var(--accent2)}
+.link{display:inline-flex;align-items:center;justify-content:center;background:#2b2b31;min-height:50px;padding:0 16px;font-size:16px}
+.openRow{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:12px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.watch{min-height:78px;text-align:left;padding:0 20px;background:#26262c;font-size:23px;font-weight:700}
+.watch:hover{background:#303038}
+.empty{color:var(--muted);border:1px dashed #414149;border-radius:12px;padding:18px}
+.status{margin-top:14px;min-height:28px;color:#bf94ff;font-size:18px}.status.error{color:#ff8c99}
+.note{color:#d5d5da;line-height:1.65}.note p{margin:8px 0}
+@media(max-width:850px){body{padding:14px}h1{font-size:31px}.topbar{align-items:flex-start}.openRow,.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div>
+      <h1>LF2 Twitch Lite <span>Chat</span></h1>
+      <p>映像と視聴者チャットを一緒に見るための別入口</p>
+    </div>
+    <a class="link" href="./">通常版へ戻る</a>
+  </header>
+
+  <section class="panel">
+    <h2>チャット付きで開く</h2>
+    <div class="openRow">
+      <input id="channelInput" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Twitchチャンネル名 または URL">
+      <button id="openChat" class="primary" type="button">▶ 映像＋チャット</button>
+    </div>
+    <div id="status" class="status">待機中</div>
+  </section>
+
+  <section class="panel">
+    <h2>お気に入り</h2>
+    <div id="favoritesEmpty" class="empty">通常版で登録したお気に入りがここに表示されます。</div>
+    <div id="favorites" class="cards"></div>
+  </section>
+
+  <section class="panel">
+    <h2>最近見たチャンネル</h2>
+    <div id="recentEmpty" class="empty">まだ履歴はありません。</div>
+    <div id="recent" class="cards"></div>
+  </section>
+
+  <section class="panel note">
+    <p>お気に入りと履歴は通常版と共通です。通常版の画面や再生方法は変更しません。</p>
+    <p>このページから開いた場合だけ、映像の右側にTwitchの視聴者チャットを表示します。</p>
+  </section>
+</main>
+<script>
+(function(){
+'use strict';
+var FAVORITES='lf2TwitchLite.favorites.v1';
+var RECENT='lf2TwitchLite.recent.v1';
+var MAX_RECENT=10;
+var input=document.getElementById('channelInput');
+var statusEl=document.getElementById('status');
+
+function load(key){
+  try{
+    var value=JSON.parse(localStorage.getItem(key)||'[]');
+    return Array.isArray(value)?value:[];
+  }catch(e){return []}
+}
+function save(key,value){
+  try{localStorage.setItem(key,JSON.stringify(value))}catch(e){}
+}
+function normalize(value){
+  value=(value||'').trim();
+  var match=value.match(/^(?:https?:\/\/)?(?:www\.)?twitch\.tv\/([A-Za-z0-9_]{2,40})(?:[\/?#].*)?$/i);
+  if(match)value=match[1];
+  return /^[A-Za-z0-9_]{2,40}$/.test(value)?value.toLowerCase():'';
+}
+function setStatus(text,error){
+  statusEl.textContent=text;
+  statusEl.className='status'+(error?' error':'');
+}
+function addRecent(channel){
+  var recent=load(RECENT).filter(function(item){return item!==channel});
+  recent.unshift(channel);
+  save(RECENT,recent.slice(0,MAX_RECENT));
+}
+function openChannel(value){
+  var channel=normalize(value);
+  if(!channel){setStatus('チャンネル名を確認してください。',true);return}
+  addRecent(channel);
+  location.href='watch.html?channel='+encodeURIComponent(channel);
+}
+function makeButton(channel){
+  var button=document.createElement('button');
+  button.type='button';
+  button.className='watch';
+  button.textContent='▶ '+channel;
+  button.onclick=function(){openChannel(channel)};
+  return button;
+}
+function renderList(id,emptyId,items){
+  var el=document.getElementById(id);
+  var empty=document.getElementById(emptyId);
+  el.innerHTML='';
+  empty.style.display=items.length?'none':'block';
+  items.forEach(function(channel){el.appendChild(makeButton(channel))});
+}
+function render(){
+  renderList('favorites','favoritesEmpty',load(FAVORITES));
+  renderList('recent','recentEmpty',load(RECENT));
+}
+document.getElementById('openChat').onclick=function(){openChannel(input.value)};
+input.addEventListener('keydown',function(e){if(e.key==='Enter')openChannel(input.value)});
+render();
+})();
+</script>
+</body>
+</html>
