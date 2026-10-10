@@ -51,9 +51,6 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 .tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .tools button{min-height:50px;padding:0 16px;background:#303036;font-size:16px}
 .fileInput{display:none}
-.viewOption{display:flex;align-items:center;font-size:22px;cursor:pointer}
-.viewOption input{width:28px;height:28px;min-height:0;margin:0 14px 0 0;flex:0 0 auto}
-.viewHint{margin:12px 0 0;color:var(--muted);font-size:17px;line-height:1.6}
 @media(max-width:850px){
   body{padding:14px}
   h1{font-size:31px}
@@ -69,19 +66,11 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 <main class="shell">
   <header class="topbar">
     <div>
-      <h1>LF2 Twitch Lite <span>v0.6</span></h1>
+      <h1>LF2 Twitch Lite <span>v0.5</span></h1>
       <p>Panasonic TH-43LF2Y 向け軽量Twitchランチャー</p>
     </div>
     <button id="clearStatus" class="small ghost" type="button">状態を消す</button>
   </header>
-
-  <section class="panel">
-    <label class="viewOption" for="chatEnabled">
-      <input id="chatEnabled" type="checkbox">
-      <span>チャットと一緒に見る（試験表示）</span>
-    </label>
-    <p class="viewHint">オンにすると、配信の右側に視聴者のチャットを表示します。</p>
-  </section>
 
   <section id="resumePanel" class="panel" style="display:none">
     <button id="resumeLast" class="primary resumeButton" type="button"></button>
@@ -134,8 +123,7 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 
   <section class="panel help">
     <h2 style="margin-bottom:12px">使い方</h2>
-    <p>配信者を選ぶと、Twitchの映像プレイヤーを開きます。「チャットと一緒に見る」をオンにすると、このページ内で映像とチャットを並べます。</p>
-    <p>チャットも含めて大きく表示するときは、視聴画面の「全体を全画面」を使ってください。</p>
+    <p>配信者を選ぶと、重いTwitch公式サイト全体ではなく <strong>player.twitch.tv</strong> を直接開きます。</p>
     <p>お気に入りのLIVE状態は起動時と約5分ごとに更新し、LIVE中を先頭へ並べます。</p>
     <p><span class="kbd">戻る</span> でこのランチャーへ戻れます。</p>
   </section>
@@ -145,7 +133,6 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
 'use strict';
 var FAVORITES='lf2TwitchLite.favorites.v1';
 var RECENT='lf2TwitchLite.recent.v1';
-var CHAT_ENABLED='lf2TwitchLite.chatEnabled.v1';
 var MAX_RECENT=10;
 var LIVE_REFRESH_MS=300000;
 var liveState={};
@@ -162,19 +149,6 @@ var channelInput=document.getElementById('channelInput');
 var statusEl=document.getElementById('status');
 var liveMetaEl=document.getElementById('liveMeta');
 var refreshLiveBtn=document.getElementById('refreshLive');
-var chatEnabled=document.getElementById('chatEnabled');
-try{chatEnabled.checked=localStorage.getItem(CHAT_ENABLED)==='true'}catch(e){}
-
-function saveChatPreference(){
-  try{localStorage.setItem(CHAT_ENABLED,String(chatEnabled.checked))}catch(e){
-    setStatus('表示方法を保存できませんでした。今回の選択は利用できます。','error');
-  }
-}
-function renderWatchMode(){
-  document.getElementById('openLite').textContent=chatEnabled.checked?'▶ チャット付きで開く':'▶ 軽量プレイヤーで開く';
-  renderResume();
-}
-chatEnabled.onchange=function(){saveChatPreference();renderWatchMode()};
 
 function load(key){
   try{
@@ -215,7 +189,7 @@ function openChannel(v){
   addRecent(c);
   render();
   setStatus(c+' を開いています…','ok');
-  location.href=chatEnabled.checked?'watch.html?channel='+encodeURIComponent(c):playerUrl(c);
+  location.href=playerUrl(c);
 }
 function addFavorite(v){
   var c=normalize(v);
@@ -340,7 +314,7 @@ function renderResume(){
     return;
   }
   panel.style.display='block';
-  button.textContent='▶ 前回の「'+r[0]+'」を再生'+(chatEnabled.checked?'（チャット付き）':'');
+  button.textContent='▶ 前回の「'+r[0]+'」を再生';
   button.onclick=function(){openChannel(r[0])};
 }
 function render(){
@@ -403,7 +377,7 @@ favoriteInput.addEventListener('keydown',function(e){if(e.key==='Enter')addFavor
 channelInput.addEventListener('keydown',function(e){if(e.key==='Enter')openChannel(channelInput.value)});
 
 document.getElementById('exportData').onclick=function(){
-  var data={version:1,favorites:load(FAVORITES),recent:load(RECENT),chatEnabled:chatEnabled.checked};
+  var data={version:1,favorites:load(FAVORITES),recent:load(RECENT)};
   var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
@@ -425,11 +399,6 @@ document.getElementById('importFile').onchange=function(e){
       if(!d||!Array.isArray(d.favorites)||!Array.isArray(d.recent))throw new Error('形式が違います');
       save(FAVORITES,d.favorites.map(normalize).filter(Boolean));
       save(RECENT,d.recent.map(normalize).filter(Boolean).slice(0,MAX_RECENT));
-      if(typeof d.chatEnabled==='boolean'){
-        chatEnabled.checked=d.chatEnabled;
-        saveChatPreference();
-        renderWatchMode();
-      }
       liveState={};
       setStatus('設定を読み込みました。','ok');
       render();
@@ -442,7 +411,6 @@ document.getElementById('importFile').onchange=function(e){
 };
 
 render();
-renderWatchMode();
 setTimeout(refreshLiveStatuses,300);
 setInterval(refreshLiveStatuses,LIVE_REFRESH_MS);
 })();

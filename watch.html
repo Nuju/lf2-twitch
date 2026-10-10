@@ -42,7 +42,7 @@ html,body{margin:0;min-height:100%;background:#0e0e10;color:#efeff1;font-family:
   <header class="toolbar">
     <h1 id="channelName" class="channel">チャット付き視聴</h1>
     <nav id="watchActions" class="actions" aria-label="視聴操作">
-      <a class="action" href="./">一覧へ戻る</a>
+      <a class="action" href="chat.html">チャット版へ戻る</a>\n      <a class="action" href="./">通常版へ</a>
       <button id="toggleChat" class="action" type="button" aria-controls="chatPanel" aria-expanded="true">チャットを隠す</button>
       <button id="toggleFullscreen" class="action primary" type="button">全体を全画面</button>
       <a id="openDirect" class="action" hidden>映像のみで開く</a>
@@ -117,7 +117,7 @@ if(!/^[a-z0-9_]{2,40}$/.test(channel)){
   stage.hidden=true;
   toggleChat.disabled=true;
   fullscreenButton.disabled=true;
-  inform('チャンネル名を確認できませんでした。「一覧へ戻る」から配信者を選んでください。');
+  inform('チャンネル名を確認できませんでした。「チャット版へ戻る」から配信者を選んでください。');
   return;
 }
 document.getElementById('channelName').textContent=channel+' の配信';
