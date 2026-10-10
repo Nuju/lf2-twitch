@@ -44,6 +44,23 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
 .empty{color:var(--muted);border:1px dashed #414149;border-radius:12px;padding:18px}
 .status{margin-top:14px;min-height:28px;color:#bf94ff;font-size:18px}.status.error{color:#ff8c99}
 .note{color:#d5d5da;line-height:1.65}.note p{margin:8px 0}
+.topActions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.fullscreenButton{min-height:50px;padding:0 16px;font-size:16px}
+[hidden]{display:none!important}
+body.isWatching{padding:0;overflow:hidden}
+.inlineViewer{position:fixed;inset:0;z-index:10;background:#000}
+.inlineStage{display:flex;width:100%;height:100%}
+.inlineVideo{position:relative;flex:1 1 auto;min-width:400px;height:100%;background:#000}
+.inlineChat{position:relative;flex:0 0 350px;height:100%;border-left:1px solid #34343b;background:#18181b}
+.inlineStage iframe{position:absolute;top:0;right:0;bottom:0;left:0;display:block;width:100%;height:100%;border:0}
+@media(min-width:1600px){.inlineChat{flex-basis:400px}}
+@media(max-width:800px){
+  body.isWatching{overflow:auto}
+  .inlineViewer{overflow:auto}
+  .inlineStage{height:auto;min-height:100vh;flex-direction:column}
+  .inlineVideo{flex:none;min-width:0;width:100%;height:56.25vw;min-height:300px}
+  .inlineChat{flex:none;width:100%;height:60vh;min-height:360px;border-left:0;border-top:1px solid #34343b}
+}
 @media(max-width:850px){
   body{padding:14px}
   h1{font-size:31px}
@@ -55,13 +72,16 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
 </style>
 </head>
 <body>
-<main class="shell">
+<main class="shell" id="appShell">
   <header class="topbar">
     <div>
       <h1>LF2 Twitch Lite <span>Chat</span></h1>
       <p>映像と視聴者チャットを一緒に見るための別入口</p>
     </div>
-    <a class="link" href="./">通常版へ戻る</a>
+    <div class="topActions">
+      <button id="fullscreenButton" class="small ghost fullscreenButton" type="button">全画面表示</button>
+      <a class="link" href="./">通常版へ戻る</a>
+    </div>
   </header>
 
   <section class="panel">
@@ -95,8 +115,15 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
   <section class="panel note">
     <p>お気に入りと履歴は通常版と共通です。通常版の画面や再生方法は変更しません。</p>
     <p>LIVE状態は起動時と約5分ごとに更新します。このページから開いた場合だけ、映像の右側に視聴者チャットを表示します。</p>
+    <p>URLバーを隠したい場合は「全画面表示」を押してください。配信を開いても画面の切り替えだけを行い、全画面状態を維持します。戻る操作はテレビのリモコンで行えます。</p>
   </section>
 </main>
+<section id="inlineViewer" class="inlineViewer" hidden aria-label="チャット付き視聴">
+  <div class="inlineStage" aria-label="映像とチャット">
+    <div id="inlineVideo" class="inlineVideo"></div>
+    <aside id="inlineChat" class="inlineChat" aria-label="視聴者のチャット"></aside>
+  </div>
+</section>
 <script>
 (function(){
 'use strict';
@@ -117,6 +144,13 @@ var recentEmpty=document.getElementById('recentEmpty');
 var favoriteCount=document.getElementById('favoriteCount');
 var liveMetaEl=document.getElementById('liveMeta');
 var refreshLiveBtn=document.getElementById('refreshLive');
+var fullscreenButton=document.getElementById('fullscreenButton');
+var appShell=document.getElementById('appShell');
+var inlineViewer=document.getElementById('inlineViewer');
+var inlineVideo=document.getElementById('inlineVideo');
+var inlineChat=document.getElementById('inlineChat');
+var viewingChannel='';
+var focusedChannel='';
 
 function load(key){
   try{
@@ -142,12 +176,119 @@ function addRecent(channel){
   recent.unshift(channel);
   save(RECENT,recent.slice(0,MAX_RECENT));
 }
+function fullscreenElement(){
+  return document.fullscreenElement||document.webkitFullscreenElement;
+}
+function updateFullscreenButton(){
+  fullscreenButton.textContent=fullscreenElement()?'全画面を解除':'全画面表示';
+}
+function enterFullscreen(){
+  if(fullscreenElement())return;
+  var root=document.documentElement;
+  var request=root.requestFullscreen||root.webkitRequestFullscreen;
+  if(!request){
+    setStatus('このブラウザではページの全画面表示を利用できません。テレビ側の表示設定をご確認ください。',true);
+    return;
+  }
+  try{
+    // Try to hide browser navigation UI. Older browsers may ignore this option.
+    var result=request.call(root,{navigationUI:'hide'});
+    if(result&&typeof result.catch==='function'){
+      result.catch(function(){
+        setStatus('全画面表示を開始できませんでした。テレビ側のブラウザ設定をご確認ください。',true);
+      });
+    }
+  }catch(e){
+    setStatus('全画面表示を開始できませんでした。テレビ側のブラウザ設定をご確認ください。',true);
+  }
+}
+fullscreenButton.onclick=function(){
+  if(!fullscreenElement()){enterFullscreen();return}
+  var exit=document.exitFullscreen||document.webkitExitFullscreen;
+  if(exit){
+    try{
+      var result=exit.call(document);
+      if(result&&typeof result.catch==='function')result.catch(function(){
+        setStatus('全画面表示を解除できませんでした。',true);
+      });
+    }catch(e){setStatus('全画面表示を解除できませんでした。',true)}
+  }
+};
+document.addEventListener('fullscreenchange',updateFullscreenButton);
+document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
+
+function showLauncher(){
+  if(viewingChannel){
+    inlineVideo.textContent='';
+    inlineChat.textContent='';
+    viewingChannel='';
+  }
+  inlineViewer.hidden=true;
+  appShell.hidden=false;
+  document.body.classList.remove('isWatching');
+  document.title='LF2 Twitch Lite - Chat';
+  render();
+  if(focusedChannel){
+    var buttons=document.querySelectorAll('.watch');
+    for(var i=0;i<buttons.length;i++){
+      if(buttons[i].getAttribute('data-channel')===focusedChannel){
+        buttons[i].focus();
+        break;
+      }
+    }
+  }
+}
+function showViewer(channel){
+  if(viewingChannel===channel)return;
+  viewingChannel=channel;
+  document.title=channel+' | LF2 Twitch Lite';
+  appShell.hidden=true;
+  inlineViewer.hidden=false;
+  document.body.classList.add('isWatching');
+  var parent=encodeURIComponent(location.hostname);
+  inlineVideo.textContent='';
+  inlineChat.textContent='';
+
+  var video=document.createElement('iframe');
+  video.title=channel+' のTwitch配信';
+  video.src='https://player.twitch.tv/?channel='+encodeURIComponent(channel)+'&parent='+parent+'&autoplay=true&muted=false';
+  video.setAttribute('allow','autoplay; fullscreen');
+  video.setAttribute('allowfullscreen','');
+  inlineVideo.appendChild(video);
+
+  var chat=document.createElement('iframe');
+  chat.title=channel+' の視聴者チャット';
+  chat.src='https://www.twitch.tv/embed/'+encodeURIComponent(channel)+'/chat?parent='+parent+'&darkpopout';
+  inlineChat.appendChild(chat);
+}
 function openChannel(value){
   var channel=normalize(value);
   if(!channel){setStatus('チャンネル名を確認してください。',true);return}
+  if(location.protocol!=='https:'&&location.hostname!=='localhost'){
+    setStatus('チャット付き視聴はHTTPSの公開ページから開いてください。',true);
+    return;
+  }
+  focusedChannel=channel;
   addRecent(channel);
-  location.href='watch.html?channel='+encodeURIComponent(channel);
+  // A channel click is a user gesture, so fullscreen can be requested here.
+  // Keeping video inside this document avoids leaving fullscreen on navigation.
+  enterFullscreen();
+  try{
+    history.pushState({lf2ChatChannel:channel},'', 'chat.html?channel='+encodeURIComponent(channel));
+    showViewer(channel);
+  }catch(e){
+    // Compatibility fallback retains the previous standalone viewing route.
+    location.href='watch.html?channel='+encodeURIComponent(channel);
+  }
 }
+window.addEventListener('popstate',function(){
+  var channel=normalize(new URLSearchParams(location.search).get('channel')||'');
+  if(channel&&((location.protocol==='https:')||(location.hostname==='localhost'))){
+    showViewer(channel);
+  }else{
+    showLauncher();
+  }
+});
 function statusRank(state){
   if(state==='live')return 0;
   if(state==='offline')return 1;
@@ -163,6 +304,7 @@ function makeButton(channel){
   var button=document.createElement('button');
   button.type='button';
   button.className='watch';
+  button.setAttribute('data-channel',channel);
 
   var badge=document.createElement('span');
   var state=liveState[channel]||'unknown';
@@ -236,6 +378,7 @@ function fetchLiveState(channel){
   }).catch(function(){return 'unknown'});
 }
 function refreshLiveStatuses(){
+  if(viewingChannel)return;
   var channels=channelsToCheck();
   if(liveRefreshRunning||!channels.length){
     render();
@@ -265,6 +408,11 @@ document.getElementById('refreshLive').onclick=function(){refreshLiveStatuses()}
 input.addEventListener('keydown',function(e){if(e.key==='Enter')openChannel(input.value)});
 
 render();
+var initialChannel=normalize(new URLSearchParams(location.search).get('channel')||'');
+if(initialChannel&&((location.protocol==='https:')||(location.hostname==='localhost'))){
+  showViewer(initialChannel);
+}
+updateFullscreenButton();
 setTimeout(refreshLiveStatuses,300);
 setInterval(refreshLiveStatuses,LIVE_REFRESH_MS);
 })();
