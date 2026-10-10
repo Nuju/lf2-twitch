@@ -74,7 +74,6 @@ button:focus,input:focus{outline:5px solid #fff;outline-offset:3px}
     </div>
     <div class="topActions">
       <a class="small ghost chatShortcut" href="chat.html">チャット版へ →</a>
-      <button id="clearStatus" class="small ghost" type="button">状態を消す</button>
     </div>
   </header>
 
@@ -377,7 +376,6 @@ function refreshLiveStatuses(){
 document.getElementById('addFavorite').onclick=function(){addFavorite(favoriteInput.value)};
 document.getElementById('openLite').onclick=function(){openChannel(channelInput.value)};
 document.getElementById('clearRecent').onclick=function(){save(RECENT,[]);setStatus('履歴を消去しました。');render()};
-document.getElementById('clearStatus').onclick=function(){setStatus('待機中')};
 document.getElementById('refreshLive').onclick=function(){refreshLiveStatuses()};
 favoriteInput.addEventListener('keydown',function(e){if(e.key==='Enter')addFavorite(favoriteInput.value)});
 channelInput.addEventListener('keydown',function(e){if(e.key==='Enter')openChannel(channelInput.value)});
