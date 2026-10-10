@@ -48,7 +48,7 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
 .fullscreenButton{min-height:50px;padding:0 16px;font-size:16px}
 [hidden]{display:none!important}
 body.isWatching{padding:0;overflow:hidden}
-.inlineViewer{position:fixed;inset:0;z-index:10;background:#000}
+.inlineViewer{position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;z-index:10;background:#000}
 .inlineStage{display:flex;width:100%;height:100%}
 .inlineVideo{position:relative;flex:1 1 auto;min-width:400px;height:100%;background:#000}
 .inlineChat{position:relative;flex:0 0 350px;height:100%;border-left:1px solid #34343b;background:#18181b}
@@ -199,7 +199,17 @@ function enterFullscreen(){
       });
     }
   }catch(e){
-    setStatus('全画面表示を開始できませんでした。テレビ側のブラウザ設定をご確認ください。',true);
+    // Older WebViews may reject the options object but allow a plain request.
+    try{
+      var legacyResult=request.call(root);
+      if(legacyResult&&typeof legacyResult.catch==='function'){
+        legacyResult.catch(function(){
+          setStatus('全画面表示を開始できませんでした。テレビ側のブラウザ設定をご確認ください。',true);
+        });
+      }
+    }catch(legacyError){
+      setStatus('全画面表示を開始できませんでした。テレビ側のブラウザ設定をご確認ください。',true);
+    }
   }
 }
 fullscreenButton.onclick=function(){
