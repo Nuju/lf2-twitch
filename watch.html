@@ -7,167 +7,67 @@
 <title>チャット付き視聴 | LF2 Twitch Lite</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#0e0e10;color:#efeff1;font-family:Arial,"Noto Sans JP",sans-serif}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0e0e10;color:#efeff1;font-family:Arial,"Noto Sans JP",sans-serif}
 [hidden]{display:none!important}
-.watchPage{display:flex;flex-direction:column;width:100%;height:100vh;min-height:420px;background:#0e0e10}
-.toolbar{display:flex;align-items:center;flex-wrap:wrap;padding:8px 12px;background:#18181b;border-bottom:1px solid #34343b;flex-shrink:0}
-.channel{margin:6px 16px 6px 4px;font-size:21px;overflow-wrap:anywhere;flex:1 1 180px}
-.actions{display:flex;align-items:center;flex-wrap:wrap}
-.action{display:inline-flex;align-items:center;justify-content:center;min-height:52px;margin:4px 8px 4px 0;padding:10px 16px;border:0;border-radius:9px;background:#303036;color:#efeff1;font:inherit;font-size:18px;text-decoration:none;cursor:pointer}
-.action:focus{outline:4px solid white;outline-offset:1px}
-.action:disabled{opacity:.5;cursor:default}
-.primary{background:#772ce8}
-.stage{display:flex;flex:1 1 auto;min-height:300px}
-.videoPanel{position:relative;flex:1 1 auto;min-width:400px;min-height:300px;background:#000}
-.chatPanel{position:relative;flex:0 0 350px;min-height:300px;border-left:1px solid #34343b;background:#18181b}
-.stage iframe{position:absolute;top:0;right:0;bottom:0;left:0;display:block;width:100%;height:100%;border:0}
-.hint{margin:0;padding:8px 16px;color:#adadb8;font-size:15px;line-height:1.5;flex-shrink:0}
-.notice{margin:0;padding:12px 16px;background:#33272a;color:#ffd1d6;font-size:18px;line-height:1.5}
-.watchPage:fullscreen{width:100%;height:100%;min-height:0}
-.watchPage:-webkit-full-screen{width:100%;height:100%;min-height:0}
-@media(min-width:1600px){.chatPanel{flex-basis:400px}.action{font-size:21px}.channel{font-size:24px}}
+.watchPage{width:100%;height:100%;background:#0e0e10}
+.stage{display:flex;width:100%;height:100%}
+.videoPanel{position:relative;flex:1 1 auto;min-width:400px;height:100%;background:#000}
+.chatPanel{position:relative;flex:0 0 350px;height:100%;border-left:1px solid #34343b;background:#18181b}
+.stage iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0}
+.notice{display:flex;align-items:center;justify-content:center;width:100%;height:100%;margin:0;padding:28px;text-align:center;color:#ffd1d6;font-size:22px;line-height:1.6}
+@media(min-width:1600px){.chatPanel{flex-basis:400px}}
 @media(max-width:800px){
-  .watchPage{height:auto;min-height:100vh}
-  .channel{flex-basis:100%}
-  .stage{flex-direction:column}
-  .videoPanel{flex:none;height:56.25vw;min-height:300px}
-  .chatPanel{flex:none;height:60vh;min-height:360px;border-left:0;border-top:1px solid #34343b}
-  .watchPage:fullscreen{overflow:auto}
-  .watchPage:-webkit-full-screen{overflow:auto}
+  html,body{overflow:auto}
+  .stage{flex-direction:column;height:auto;min-height:100vh}
+  .videoPanel{flex:none;width:100%;height:56.25vw;min-height:300px;min-width:0}
+  .chatPanel{flex:none;width:100%;height:60vh;min-height:360px;border-left:0;border-top:1px solid #34343b}
 }
 </style>
 </head>
 <body>
-<main id="watchPage" class="watchPage">
-  <header class="toolbar">
-    <h1 id="channelName" class="channel">チャット付き視聴</h1>
-    <nav id="watchActions" class="actions" aria-label="視聴操作">
-      <a class="action" href="chat.html">チャット版へ戻る</a>\n      <a class="action" href="./">通常版へ</a>
-      <button id="toggleChat" class="action" type="button" aria-controls="chatPanel" aria-expanded="true">チャットを隠す</button>
-      <button id="toggleFullscreen" class="action primary" type="button">全体を全画面</button>
-      <a id="openDirect" class="action" hidden>映像のみで開く</a>
-    </nav>
-  </header>
-  <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+<main class="watchPage">
+  <p id="notice" class="notice" role="status" hidden></p>
   <section id="stage" class="stage" aria-label="映像とチャット">
     <div id="videoPanel" class="videoPanel"></div>
     <aside id="chatPanel" class="chatPanel" aria-label="視聴者のチャット"></aside>
   </section>
-  <p class="hint">チャットも大きく見るときは、上の「全体を全画面」を使います。表示が止まる場合は「映像のみで開く」で視聴できます。</p>
 </main>
 <script>
 (function(){
 'use strict';
-var page=document.getElementById('watchPage');
 var stage=document.getElementById('stage');
-var chatPanel=document.getElementById('chatPanel');
-var toggleChat=document.getElementById('toggleChat');
-var fullscreenButton=document.getElementById('toggleFullscreen');
 var notice=document.getElementById('notice');
 var channel=(new URLSearchParams(location.search).get('channel')||'').trim().toLowerCase();
-var chatFrame=null;
-var chatUrl='';
 
-function inform(message){
+function stopWithMessage(message){
+  stage.hidden=true;
   notice.textContent=message;
-  notice.hidden=!message;
+  notice.hidden=false;
 }
-function fullscreenElement(){
-  return document.fullscreenElement||document.webkitFullscreenElement;
-}
-function updateFullscreenButton(){
-  fullscreenButton.textContent=fullscreenElement()?'全画面を戻す':'全体を全画面';
-}
-function fullscreenFailed(){
-  inform('このブラウザでは全体を全画面にできませんでした。このまま映像とチャットを表示できます。');
-}
-fullscreenButton.onclick=function(){
-  inform('');
-  var target,method,result;
-  if(fullscreenElement()){
-    target=document;
-    method=document.exitFullscreen||document.webkitExitFullscreen;
-  }else{
-    target=page;
-    method=page.requestFullscreen||page.webkitRequestFullscreen;
-  }
-  if(!method){fullscreenFailed();return}
-  try{
-    result=method.call(target);
-    if(result&&typeof result.catch==='function')result.catch(fullscreenFailed);
-  }catch(e){fullscreenFailed()}
-};
-document.addEventListener('fullscreenchange',updateFullscreenButton);
-document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
-
-// Keep the header controls usable with left/right on the television remote.
-// Keys inside Twitch's own frames remain under Twitch's control.
-document.getElementById('watchActions').addEventListener('keydown',function(e){
-  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
-  var controls=Array.prototype.filter.call(this.querySelectorAll('a,button'),function(el){
-    return !el.hidden&&!el.disabled;
-  });
-  var index=controls.indexOf(document.activeElement);
-  if(index<0)return;
-  e.preventDefault();
-  controls[(index+(e.key==='ArrowRight'?1:controls.length-1))%controls.length].focus();
-});
-
 if(!/^[a-z0-9_]{2,40}$/.test(channel)){
-  stage.hidden=true;
-  toggleChat.disabled=true;
-  fullscreenButton.disabled=true;
-  inform('チャンネル名を確認できませんでした。「チャット版へ戻る」から配信者を選んでください。');
+  stopWithMessage('チャンネル名を確認できませんでした。リモコンの「戻る」で前の画面へ戻ってください。');
   return;
 }
-document.getElementById('channelName').textContent=channel+' の配信';
 document.title=channel+' | LF2 Twitch Lite';
-var direct=document.getElementById('openDirect');
-direct.href='https://player.twitch.tv/?channel='+encodeURIComponent(channel)+'&parent=twitch.tv&player=popout&autoplay=true&muted=false';
-direct.hidden=false;
 
-// Twitch requires the actual embedding hostname (without a path or scheme).
 if(location.protocol!=='https:'&&location.hostname!=='localhost'){
-  stage.hidden=true;
-  toggleChat.disabled=true;
-  fullscreenButton.disabled=true;
-  inform('チャット付き視聴は、公開ページのHTTPSアドレスから開いてください。');
+  stopWithMessage('チャット付き視聴はHTTPSの公開ページから開いてください。リモコンの「戻る」で前の画面へ戻れます。');
   return;
 }
+
 var parent=encodeURIComponent(location.hostname);
+
 var playerFrame=document.createElement('iframe');
 playerFrame.title=channel+' のTwitch配信';
 playerFrame.src='https://player.twitch.tv/?channel='+encodeURIComponent(channel)+'&parent='+parent+'&autoplay=true&muted=false';
 playerFrame.setAttribute('allow','autoplay; fullscreen');
 playerFrame.setAttribute('allowfullscreen','');
-playerFrame.setAttribute('width','100%');
-playerFrame.setAttribute('height','100%');
 document.getElementById('videoPanel').appendChild(playerFrame);
 
-chatUrl='https://www.twitch.tv/embed/'+encodeURIComponent(channel)+'/chat?parent='+parent+'&darkpopout';
-function showChat(){
-  chatPanel.hidden=false;
-  chatFrame=document.createElement('iframe');
-  chatFrame.title=channel+' の視聴者チャット';
-  chatFrame.src=chatUrl;
-  chatFrame.setAttribute('width','100%');
-  chatFrame.setAttribute('height','100%');
-  chatPanel.appendChild(chatFrame);
-  toggleChat.textContent='チャットを隠す';
-  toggleChat.setAttribute('aria-expanded','true');
-}
-toggleChat.onclick=function(){
-  if(chatPanel.hidden){
-    showChat();
-  }else{
-    // Unload hidden chat so the TV does not keep processing incoming messages.
-    if(chatFrame){chatPanel.removeChild(chatFrame);chatFrame=null}
-    chatPanel.hidden=true;
-    toggleChat.textContent='チャットを表示';
-    toggleChat.setAttribute('aria-expanded','false');
-  }
-};
-showChat();
+var chatFrame=document.createElement('iframe');
+chatFrame.title=channel+' の視聴者チャット';
+chatFrame.src='https://www.twitch.tv/embed/'+encodeURIComponent(channel)+'/chat?parent='+parent+'&darkpopout';
+document.getElementById('chatPanel').appendChild(chatFrame);
 })();
 </script>
 </body>
