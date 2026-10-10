@@ -11,9 +11,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0e0e10;col
 [hidden]{display:none!important}
 .watchPage{width:100%;height:100%;background:#0e0e10}
 .stage{display:flex;width:100%;height:100%}
-.videoPanel{position:relative;flex:1 1 auto;min-width:400px;height:100%;background:#000}
+.videoPanel{position:relative;flex:1 1 auto;min-width:400px;height:100%;background:#000;overflow:hidden}
 .chatPanel{position:relative;flex:0 0 350px;height:100%;border-left:1px solid #34343b;background:#18181b}
-.stage iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0}
+.videoPanel iframe,.chatPanel iframe{position:absolute;top:0;right:0;bottom:0;left:0;display:block;width:100%;height:100%;border:0}
+@media(min-width:801px){
+  .videoPanel iframe{right:auto;left:-10px;width:calc(100% + 10px)}
+}
 .notice{display:flex;align-items:center;justify-content:center;width:100%;height:100%;margin:0;padding:28px;text-align:center;color:#ffd1d6;font-size:22px;line-height:1.6}
 @media(min-width:1600px){.chatPanel{flex-basis:400px}}
 @media(max-width:800px){
@@ -59,7 +62,7 @@ var parent=encodeURIComponent(location.hostname);
 
 var playerFrame=document.createElement('iframe');
 playerFrame.title=channel+' のTwitch配信';
-playerFrame.src='https://player.twitch.tv/?channel='+encodeURIComponent(channel)+'&parent='+parent+'&autoplay=true&muted=false';
+playerFrame.src='https://player.twitch.tv/?channel='+encodeURIComponent(channel)+'&parent='+parent+'&player=popout&autoplay=true&muted=false';
 playerFrame.setAttribute('allow','autoplay; fullscreen');
 playerFrame.setAttribute('allowfullscreen','');
 document.getElementById('videoPanel').appendChild(playerFrame);
