@@ -6,7 +6,10 @@
 <meta name="theme-color" content="#0e0e10">
 <title>LF2 Twitch Lite - Chat</title>
 <style>
-:root{--bg:#0e0e10;--panel:#18181b;--panel2:#202024;--line:#34343b;--text:#efeff1;--muted:#adadb8;--accent:#9147ff;--accent2:#772ce8}
+:root{
+  --bg:#0e0e10;--panel:#18181b;--panel2:#202024;--line:#34343b;
+  --text:#efeff1;--muted:#adadb8;--accent:#9147ff;--accent2:#772ce8;
+}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans JP",sans-serif}
 body{padding:22px}
@@ -15,7 +18,10 @@ body{padding:22px}
 h1{font-size:40px;margin:0 0 5px} h1 span{font-size:15px;color:var(--muted);font-weight:normal}
 .topbar p{margin:0;color:var(--muted);font-size:18px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:18px}
-h2{font-size:25px;margin:0 0 15px}
+.sectionHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.sectionActions{display:flex;align-items:center;gap:10px}
+h2{font-size:25px;margin:0}
+.count{display:inline-flex;min-width:38px;height:38px;align-items:center;justify-content:center;border-radius:999px;background:var(--panel2);color:var(--muted)}
 input,button{font:inherit}
 input{width:100%;min-height:66px;border-radius:12px;border:2px solid #47474f;background:#101014;color:white;padding:0 16px;font-size:24px}
 button,.link{border:0;border-radius:12px;color:white;cursor:pointer;text-decoration:none}
@@ -23,14 +29,29 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
 .primary{background:var(--accent);font-size:22px;font-weight:700;min-height:66px;padding:0 20px}
 .primary:hover{background:var(--accent2)}
 .link{display:inline-flex;align-items:center;justify-content:center;background:#2b2b31;min-height:50px;padding:0 16px;font-size:16px}
+.small{min-height:46px;padding:0 15px;font-size:16px}
+.ghost{background:#2b2b31;color:#ddd}
 .openRow{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:12px}
 .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.watch{min-height:78px;text-align:left;padding:0 20px;background:#26262c;font-size:23px;font-weight:700}
+.watch{min-height:78px;text-align:left;padding:0 20px;background:#26262c;font-size:23px;font-weight:700;display:flex;align-items:center;gap:12px}
 .watch:hover{background:#303038}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:86px;height:34px;border-radius:999px;font-size:14px;font-weight:700;letter-spacing:.03em;flex:0 0 auto}
+.badge.live{background:#8f2432;color:white}
+.badge.offline{background:#3a3a42;color:#c6c6cd}
+.badge.unknown{background:#4c442f;color:#e6cf91}
+.badge.loading{background:#34343b;color:#b9b9c0}
+.liveMeta{margin:-5px 0 14px;color:var(--muted);font-size:15px;min-height:20px}
 .empty{color:var(--muted);border:1px dashed #414149;border-radius:12px;padding:18px}
 .status{margin-top:14px;min-height:28px;color:#bf94ff;font-size:18px}.status.error{color:#ff8c99}
 .note{color:#d5d5da;line-height:1.65}.note p{margin:8px 0}
-@media(max-width:850px){body{padding:14px}h1{font-size:31px}.topbar{align-items:flex-start}.openRow,.cards{grid-template-columns:1fr}}
+@media(max-width:850px){
+  body{padding:14px}
+  h1{font-size:31px}
+  .topbar{align-items:flex-start}
+  .openRow,.cards{grid-template-columns:1fr}
+  .sectionHead{align-items:flex-start}
+  .sectionActions{flex-wrap:wrap;justify-content:flex-end}
+}
 </style>
 </head>
 <body>
@@ -44,7 +65,7 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
   </header>
 
   <section class="panel">
-    <h2>チャット付きで開く</h2>
+    <h2 style="margin-bottom:15px">チャット付きで開く</h2>
     <div class="openRow">
       <input id="channelInput" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Twitchチャンネル名 または URL">
       <button id="openChat" class="primary" type="button">▶ 映像＋チャット</button>
@@ -53,20 +74,27 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
   </section>
 
   <section class="panel">
-    <h2>お気に入り</h2>
+    <div class="sectionHead">
+      <h2>お気に入り</h2>
+      <div class="sectionActions">
+        <span id="favoriteCount" class="count">0</span>
+        <button id="refreshLive" class="small ghost" type="button">LIVE更新</button>
+      </div>
+    </div>
+    <div id="liveMeta" class="liveMeta"></div>
     <div id="favoritesEmpty" class="empty">通常版で登録したお気に入りがここに表示されます。</div>
     <div id="favorites" class="cards"></div>
   </section>
 
   <section class="panel">
-    <h2>最近見たチャンネル</h2>
+    <h2 style="margin-bottom:15px">最近見たチャンネル</h2>
     <div id="recentEmpty" class="empty">まだ履歴はありません。</div>
     <div id="recent" class="cards"></div>
   </section>
 
   <section class="panel note">
     <p>お気に入りと履歴は通常版と共通です。通常版の画面や再生方法は変更しません。</p>
-    <p>このページから開いた場合だけ、映像の右側にTwitchの視聴者チャットを表示します。</p>
+    <p>LIVE状態は起動時と約5分ごとに更新します。このページから開いた場合だけ、映像の右側に視聴者チャットを表示します。</p>
   </section>
 </main>
 <script>
@@ -75,8 +103,20 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
 var FAVORITES='lf2TwitchLite.favorites.v1';
 var RECENT='lf2TwitchLite.recent.v1';
 var MAX_RECENT=10;
+var LIVE_REFRESH_MS=300000;
+var liveState={};
+var lastLiveUpdate=0;
+var liveRefreshRunning=false;
+
 var input=document.getElementById('channelInput');
 var statusEl=document.getElementById('status');
+var favoritesEl=document.getElementById('favorites');
+var recentEl=document.getElementById('recent');
+var favoritesEmpty=document.getElementById('favoritesEmpty');
+var recentEmpty=document.getElementById('recentEmpty');
+var favoriteCount=document.getElementById('favoriteCount');
+var liveMetaEl=document.getElementById('liveMeta');
+var refreshLiveBtn=document.getElementById('refreshLive');
 
 function load(key){
   try{
@@ -108,28 +148,125 @@ function openChannel(value){
   addRecent(channel);
   location.href='watch.html?channel='+encodeURIComponent(channel);
 }
+function statusRank(state){
+  if(state==='live')return 0;
+  if(state==='offline')return 1;
+  return 2;
+}
+function statusText(state){
+  if(state==='live')return '● LIVE';
+  if(state==='offline')return 'OFFLINE';
+  if(state==='loading')return '確認中';
+  return '不明';
+}
 function makeButton(channel){
   var button=document.createElement('button');
   button.type='button';
   button.className='watch';
-  button.textContent='▶ '+channel;
+
+  var badge=document.createElement('span');
+  var state=liveState[channel]||'unknown';
+  badge.className='badge '+state;
+  badge.textContent=statusText(state);
+
+  var name=document.createElement('span');
+  name.textContent=channel;
+
+  button.appendChild(badge);
+  button.appendChild(name);
   button.onclick=function(){openChannel(channel)};
   return button;
 }
-function renderList(id,emptyId,items){
-  var el=document.getElementById(id);
-  var empty=document.getElementById(emptyId);
+function sorted(items){
+  return items.slice().sort(function(a,b){
+    var diff=statusRank(liveState[a]||'unknown')-statusRank(liveState[b]||'unknown');
+    return diff!==0?diff:a.localeCompare(b);
+  });
+}
+function renderList(el,empty,items){
   el.innerHTML='';
   empty.style.display=items.length?'none':'block';
-  items.forEach(function(channel){el.appendChild(makeButton(channel))});
+  sorted(items).forEach(function(channel){el.appendChild(makeButton(channel))});
+}
+function renderLiveMeta(favorites){
+  if(!favorites.length){
+    liveMetaEl.textContent='';
+    return;
+  }
+  var liveCount=0;
+  var unknownCount=0;
+  favorites.forEach(function(channel){
+    if(liveState[channel]==='live')liveCount++;
+    if(!liveState[channel]||liveState[channel]==='unknown'||liveState[channel]==='loading')unknownCount++;
+  });
+  var text='LIVE '+liveCount+' / '+favorites.length;
+  if(lastLiveUpdate){
+    var date=new Date(lastLiveUpdate);
+    text+=' · '+('0'+date.getHours()).slice(-2)+':'+('0'+date.getMinutes()).slice(-2)+' 更新';
+  }
+  if(unknownCount&&!liveRefreshRunning)text+=' · 一部取得不可';
+  liveMetaEl.textContent=text;
 }
 function render(){
-  renderList('favorites','favoritesEmpty',load(FAVORITES));
-  renderList('recent','recentEmpty',load(RECENT));
+  var favorites=load(FAVORITES);
+  var recent=load(RECENT);
+  favoriteCount.textContent=String(favorites.length);
+  renderList(favoritesEl,favoritesEmpty,favorites);
+  renderList(recentEl,recentEmpty,recent);
+  renderLiveMeta(favorites);
 }
+function channelsToCheck(){
+  var all=load(FAVORITES).concat(load(RECENT));
+  var unique=[];
+  all.forEach(function(channel){
+    if(unique.indexOf(channel)===-1)unique.push(channel);
+  });
+  return unique;
+}
+function fetchLiveState(channel){
+  var url='https://decapi.me/twitch/uptime/'+encodeURIComponent(channel)+'?lang=en';
+  return fetch(url,{cache:'no-store'}).then(function(response){
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    return response.text();
+  }).then(function(text){
+    text=(text||'').trim();
+    if(/offline/i.test(text))return 'offline';
+    if(!text||/not found|invalid|error/i.test(text))return 'unknown';
+    return 'live';
+  }).catch(function(){return 'unknown'});
+}
+function refreshLiveStatuses(){
+  var channels=channelsToCheck();
+  if(liveRefreshRunning||!channels.length){
+    render();
+    return;
+  }
+  liveRefreshRunning=true;
+  refreshLiveBtn.disabled=true;
+  refreshLiveBtn.textContent='更新中…';
+  channels.forEach(function(channel){liveState[channel]='loading'});
+  render();
+
+  Promise.all(channels.map(function(channel){
+    return fetchLiveState(channel).then(function(state){liveState[channel]=state});
+  })).then(function(){
+    lastLiveUpdate=Date.now();
+  }).catch(function(){
+  }).then(function(){
+    liveRefreshRunning=false;
+    refreshLiveBtn.disabled=false;
+    refreshLiveBtn.textContent='LIVE更新';
+    render();
+  });
+}
+
 document.getElementById('openChat').onclick=function(){openChannel(input.value)};
+document.getElementById('refreshLive').onclick=function(){refreshLiveStatuses()};
 input.addEventListener('keydown',function(e){if(e.key==='Enter')openChannel(input.value)});
+
 render();
+setTimeout(refreshLiveStatuses,300);
+setInterval(refreshLiveStatuses,LIVE_REFRESH_MS);
 })();
 </script>
 </body>
