@@ -3,74 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0e0e10">
-<title>チャット付き視聴 | LF2 Twitch Lite</title>
-<style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0e0e10;color:#efeff1;font-family:Arial,"Noto Sans JP",sans-serif}
-[hidden]{display:none!important}
-.watchPage{width:100%;height:100%;background:#0e0e10}
-.stage{display:grid;grid-template-columns:minmax(0,1fr) 350px;width:100%;height:100%;overflow:hidden}
-.videoPanel{position:relative;min-width:0;height:100%;background:#000;overflow:hidden}
-.chatPanel{position:relative;min-width:0;height:100%;border-left:1px solid #34343b;background:#18181b}
-.videoPanel iframe,.chatPanel iframe{position:absolute;top:0;right:0;bottom:0;left:0;display:block;width:100%;height:100%;border:0}
-.notice{display:flex;align-items:center;justify-content:center;width:100%;height:100%;margin:0;padding:28px;text-align:center;color:#ffd1d6;font-size:22px;line-height:1.6}
-@media(min-width:1600px){
-  .stage{grid-template-columns:minmax(0,1fr) 400px}
-}
-@media(max-width:800px){
-  html,body{overflow:auto}
-  .stage{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto;min-height:100vh}
-  .videoPanel{width:100%;height:56.25vw;min-height:300px;min-width:0}
-  .chatPanel{width:100%;height:60vh;min-height:360px;border-left:0;border-top:1px solid #34343b}
-}
-</style>
-</head>
-<body>
-<main class="watchPage">
-  <p id="notice" class="notice" role="status" hidden></p>
-  <section id="stage" class="stage" aria-label="映像とチャット">
-    <div id="videoPanel" class="videoPanel"></div>
-    <aside id="chatPanel" class="chatPanel" aria-label="視聴者のチャット"></aside>
-  </section>
-</main>
+<title>LF2 Twitch Lite - Chat</title>
+<meta http-equiv="refresh" content="0; url=chat.html">
 <script>
 (function(){
-'use strict';
-var stage=document.getElementById('stage');
-var notice=document.getElementById('notice');
-var channel=(new URLSearchParams(location.search).get('channel')||'').trim().toLowerCase();
-
-function stopWithMessage(message){
-  stage.hidden=true;
-  notice.textContent=message;
-  notice.hidden=false;
-}
-if(!/^[a-z0-9_]{2,40}$/.test(channel)){
-  stopWithMessage('チャンネル名を確認できませんでした。リモコンの「戻る」で前の画面へ戻ってください。');
-  return;
-}
-document.title=channel+' | LF2 Twitch Lite';
-
-if(location.protocol!=='https:'&&location.hostname!=='localhost'){
-  stopWithMessage('チャット付き視聴はHTTPSの公開ページから開いてください。リモコンの「戻る」で前の画面へ戻れます。');
-  return;
-}
-
-var parent=encodeURIComponent(location.hostname);
-
-var playerFrame=document.createElement('iframe');
-playerFrame.title=channel+' のTwitch配信';
-playerFrame.src='https://player.twitch.tv/?channel='+encodeURIComponent(channel)+'&parent='+parent+'&player=popout&autoplay=true&muted=false';
-playerFrame.setAttribute('allow','autoplay; fullscreen');
-playerFrame.setAttribute('allowfullscreen','');
-document.getElementById('videoPanel').appendChild(playerFrame);
-
-var chatFrame=document.createElement('iframe');
-chatFrame.title=channel+' の視聴者チャット';
-chatFrame.src='https://www.twitch.tv/embed/'+encodeURIComponent(channel)+'/chat?parent='+parent+'&darkpopout';
-document.getElementById('chatPanel').appendChild(chatFrame);
+  location.replace('chat.html'+location.search+location.hash);
 })();
 </script>
-</body>
+</head>
+<body></body>
 </html>
