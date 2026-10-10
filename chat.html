@@ -49,23 +49,19 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
 [hidden]{display:none!important}
 body.isWatching{padding:0;overflow:hidden}
 .inlineViewer{position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;z-index:10;background:#000}
-.inlineStage{display:flex;width:100%;height:100%;overflow:hidden}
-.inlineVideo{position:relative;flex:1 1 auto;min-width:400px;height:100%;background:#000;overflow:hidden;z-index:1}
-.inlineChat{position:relative;flex:0 0 350px;height:100%;border-left:1px solid #34343b;background:#18181b;z-index:2}
+.inlineStage{display:grid;grid-template-columns:minmax(0,1fr) 350px;width:100%;height:100%;overflow:hidden}
+.inlineVideo{position:relative;min-width:0;height:100%;background:#000;overflow:hidden}
+.inlineChat{position:relative;min-width:0;height:100%;border-left:1px solid #34343b;background:#18181b}
 .inlineVideo iframe,.inlineChat iframe{position:absolute;top:0;right:0;bottom:0;left:0;display:block;width:100%;height:100%;border:0}
-@media(min-width:801px){
-  .inlineVideo{transform:translateX(175px)}
-}
 @media(min-width:1600px){
-  .inlineVideo{transform:translateX(200px)}
-  .inlineChat{flex-basis:400px}
+  .inlineStage{grid-template-columns:minmax(0,1fr) 400px}
 }
 @media(max-width:800px){
   body.isWatching{overflow:auto}
   .inlineViewer{overflow:auto}
-  .inlineStage{height:auto;min-height:100vh;flex-direction:column}
-  .inlineVideo{flex:none;min-width:0;width:100%;height:56.25vw;min-height:300px}
-  .inlineChat{flex:none;width:100%;height:60vh;min-height:360px;border-left:0;border-top:1px solid #34343b}
+  .inlineStage{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto;min-height:100vh}
+  .inlineVideo{width:100%;height:56.25vw;min-height:300px}
+  .inlineChat{width:100%;height:60vh;min-height:360px;border-left:0;border-top:1px solid #34343b}
 }
 @media(max-width:850px){
   body{padding:14px}
