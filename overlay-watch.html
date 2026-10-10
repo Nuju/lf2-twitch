@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0e0e10">
+<title>透過チャット視聴 | LF2 Twitch Lite</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0e0e10;color:#efeff1;font-family:Arial,"Noto Sans JP",sans-serif}
+[hidden]{display:none!important}
+.watchPage{width:100%;height:100%;background:#0e0e10}
+.stage{position:relative;width:100%;height:100%;overflow:hidden}
+.videoPanel{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;background:#000;overflow:hidden;z-index:1}
+.chatPanel{position:absolute;top:0;right:0;bottom:0;width:350px;height:100%;z-index:2;border-left:1px solid rgba(255,255,255,.18);background:transparent;pointer-events:none}
+.videoPanel iframe,.chatPanel iframe{position:absolute;top:0;right:0;bottom:0;left:0;display:block;width:100%;height:100%;border:0}
+.chatPanel iframe{opacity:.80;pointer-events:none}
+.notice{display:flex;align-items:center;justify-content:center;width:100%;height:100%;margin:0;padding:28px;text-align:center;color:#ffd1d6;font-size:22px;line-height:1.6}
+@media(min-width:1600px){
+  .chatPanel{width:400px}
+}
+@media(max-width:800px){
+  .chatPanel{width:45%}
+}
+</style>
+</head>
+<body>
+<main class="watchPage">
+  <p id="notice" class="notice" role="status" hidden></p>
+  <section id="stage" class="stage" aria-label="映像とチャット">
+    <div id="videoPanel" class="videoPanel"></div>
+    <aside id="chatPanel" class="chatPanel" aria-label="視聴者のチャット"></aside>
+  </section>
+</main>
+<script>
+(function(){
+'use strict';
+var stage=document.getElementById('stage');
+var notice=document.getElementById('notice');
+var channel=(new URLSearchParams(location.search).get('channel')||'').trim().toLowerCase();
+
+function stopWithMessage(message){
+  stage.hidden=true;
+  notice.textContent=message;
+  notice.hidden=false;
+}
+if(!/^[a-z0-9_]{2,40}$/.test(channel)){
+  stopWithMessage('チャンネル名を確認できませんでした。リモコンの「戻る」で前の画面へ戻ってください。');
+  return;
+}
+document.title=channel+' | LF2 Twitch Lite';
+
+if(location.protocol!=='https:'&&location.hostname!=='localhost'){
+  stopWithMessage('チャット付き視聴はHTTPSの公開ページから開いてください。リモコンの「戻る」で前の画面へ戻れます。');
+  return;
+}
+
+var parent=encodeURIComponent(location.hostname);
+
+var playerFrame=document.createElement('iframe');
+playerFrame.title=channel+' のTwitch配信';
+playerFrame.src='https://player.twitch.tv/?channel='+encodeURIComponent(channel)+'&parent='+parent+'&player=popout&autoplay=true&muted=false';
+playerFrame.setAttribute('allow','autoplay; fullscreen');
+playerFrame.setAttribute('allowfullscreen','');
+document.getElementById('videoPanel').appendChild(playerFrame);
+
+var chatFrame=document.createElement('iframe');
+chatFrame.title=channel+' の視聴者チャット';
+chatFrame.src='https://www.twitch.tv/embed/'+encodeURIComponent(channel)+'/chat?parent='+parent+'&darkpopout';
+chatFrame.setAttribute('tabindex','-1');
+document.getElementById('chatPanel').appendChild(chatFrame);
+})();
+</script>
+</body>
+</html>

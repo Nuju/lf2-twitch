@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0e0e10">
-<title>LF2 Twitch Lite - Chat</title>
+<title>LF2 Twitch Lite - Overlay</title>
 <style>
 :root{
   --bg:#0e0e10;--panel:#18181b;--panel2:#202024;--line:#34343b;
@@ -49,19 +49,16 @@ button:focus,input:focus,.link:focus{outline:5px solid #fff;outline-offset:3px}
 [hidden]{display:none!important}
 body.isWatching{padding:0;overflow:hidden}
 .inlineViewer{position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;z-index:10;background:#000}
-.inlineStage{display:grid;grid-template-columns:minmax(0,1fr) 350px;width:100%;height:100%;overflow:hidden}
-.inlineVideo{position:relative;min-width:0;height:100%;background:#000;overflow:hidden}
-.inlineChat{position:relative;min-width:0;height:100%;border-left:1px solid #34343b;background:#18181b}
+.inlineStage{position:relative;width:100%;height:100%;overflow:hidden}
+.inlineVideo{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;background:#000;overflow:hidden;z-index:1}
+.inlineChat{position:absolute;top:0;right:0;bottom:0;width:350px;height:100%;z-index:2;border-left:1px solid rgba(255,255,255,.18);background:transparent;pointer-events:none}
 .inlineVideo iframe,.inlineChat iframe{position:absolute;top:0;right:0;bottom:0;left:0;display:block;width:100%;height:100%;border:0}
+.inlineChat iframe{opacity:.80;pointer-events:none}
 @media(min-width:1600px){
-  .inlineStage{grid-template-columns:minmax(0,1fr) 400px}
+  .inlineChat{width:400px}
 }
 @media(max-width:800px){
-  body.isWatching{overflow:auto}
-  .inlineViewer{overflow:auto}
-  .inlineStage{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto;min-height:100vh}
-  .inlineVideo{width:100%;height:56.25vw;min-height:300px}
-  .inlineChat{width:100%;height:60vh;min-height:360px;border-left:0;border-top:1px solid #34343b}
+  .inlineChat{width:45%}
 }
 @media(max-width:850px){
   body{padding:14px}
@@ -77,21 +74,21 @@ body.isWatching{padding:0;overflow:hidden}
 <main class="shell" id="appShell">
   <header class="topbar">
     <div>
-      <h1>LF2 Twitch Lite <span>Chat</span></h1>
-      <p>映像と視聴者チャットを一緒に見るための別入口</p>
+      <h1>LF2 Twitch Lite <span>Overlay</span></h1>
+      <p>動画全幅＋半透明チャットで見るための試験入口</p>
     </div>
     <div class="topActions">
       <button id="fullscreenButton" class="small ghost fullscreenButton" type="button">全画面表示</button>
-      <a class="link" href="overlay.html">透過版へ</a>
+      <a class="link" href="chat.html">横並び版へ</a>
       <a class="link" href="./">通常版へ戻る</a>
     </div>
   </header>
 
   <section class="panel">
-    <h2 style="margin-bottom:15px">チャット付きで開く</h2>
+    <h2 style="margin-bottom:15px">透過チャットで開く</h2>
     <div class="openRow">
       <input id="channelInput" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Twitchチャンネル名 または URL">
-      <button id="openChat" class="primary" type="button">▶ 映像＋チャット</button>
+      <button id="openChat" class="primary" type="button">▶ 動画＋透過チャット</button>
     </div>
     <div id="status" class="status">待機中</div>
   </section>
@@ -116,9 +113,9 @@ body.isWatching{padding:0;overflow:hidden}
   </section>
 
   <section class="panel note">
-    <p>お気に入りと履歴は通常版と共通です。通常版の画面や再生方法は変更しません。</p>
-    <p>LIVE状態は起動時と約5分ごとに更新します。このページから開いた場合だけ、映像の右側に視聴者チャットを表示します。</p>
-    <p>URLバーを隠したい場合は「全画面表示」を押してください。配信を開いても画面の切り替えだけを行い、全画面状態を維持します。戻る操作はテレビのリモコンで行えます。</p>
+    <p>お気に入りと履歴は通常版・横並び版と共通です。</p>
+    <p>動画は画面全幅で表示し、右端にTwitch公式チャットを透明度80%で重ねます。チャットは読む用途に限定し、操作は無効です。</p>
+    <p>URLバーを隠したい場合は「全画面表示」を押してください。戻る操作はテレビのリモコンで行えます。</p>
   </section>
 </main>
 <section id="inlineViewer" class="inlineViewer" hidden aria-label="チャット付き視聴">
@@ -239,7 +236,7 @@ function showLauncher(){
   inlineViewer.hidden=true;
   appShell.hidden=false;
   document.body.classList.remove('isWatching');
-  document.title='LF2 Twitch Lite - Chat';
+  document.title='LF2 Twitch Lite - Overlay';
   render();
   if(focusedChannel){
     var buttons=document.querySelectorAll('.watch');
@@ -272,6 +269,7 @@ function showViewer(channel){
   var chat=document.createElement('iframe');
   chat.title=channel+' の視聴者チャット';
   chat.src='https://www.twitch.tv/embed/'+encodeURIComponent(channel)+'/chat?parent='+parent+'&darkpopout';
+  chat.setAttribute('tabindex','-1');
   inlineChat.appendChild(chat);
 }
 function openChannel(value){
@@ -287,11 +285,11 @@ function openChannel(value){
   // Keeping video inside this document avoids leaving fullscreen on navigation.
   enterFullscreen();
   try{
-    history.pushState({lf2ChatChannel:channel},'', 'chat.html?channel='+encodeURIComponent(channel));
+    history.pushState({lf2OverlayChannel:channel},'', 'overlay.html?channel='+encodeURIComponent(channel));
     showViewer(channel);
   }catch(e){
     // Compatibility fallback retains the previous standalone viewing route.
-    location.href='watch.html?channel='+encodeURIComponent(channel);
+    location.href='overlay-watch.html?channel='+encodeURIComponent(channel);
   }
 }
 window.addEventListener('popstate',function(){
