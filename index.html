@@ -229,6 +229,25 @@ function statusText(s){
   if(s==='loading')return '確認中';
   return '不明';
 }
+function focusKey(container){
+  var a=document.activeElement;
+  if(!a||!container.contains(a))return null;
+  return {channel:a.getAttribute('data-channel'),role:a.getAttribute('data-role')};
+}
+function restoreFocus(container,key){
+  if(!key)return;
+  var buttons=container.querySelectorAll('button');
+  var fallback=null;
+  for(var i=0;i<buttons.length;i++){
+    if(buttons[i].getAttribute('data-channel')===key.channel){
+      if(buttons[i].getAttribute('data-role')===key.role){buttons[i].focus();return}
+      if(!fallback)fallback=buttons[i];
+    }
+  }
+  // The focused card was removed: keep the remote on a nearby control.
+  if(!fallback)fallback=buttons[0]||favoriteInput;
+  fallback.focus();
+}
 function makeCard(c,isFavorite,withLive){
   var row=document.createElement('div');
   row.className='card';
@@ -237,6 +256,8 @@ function makeCard(c,isFavorite,withLive){
   watch.type='button';
   watch.className='watch';
   watch.setAttribute('aria-label',c+' を見る');
+  watch.setAttribute('data-channel',c);
+  watch.setAttribute('data-role','watch');
 
   if(withLive){
     var badge=document.createElement('span');
@@ -255,6 +276,9 @@ function makeCard(c,isFavorite,withLive){
   second.type='button';
   second.className=isFavorite?'remove':'remove star';
   second.textContent=isFavorite?'×':'☆';
+  second.setAttribute('aria-label',isFavorite?c+' をお気に入りから削除':c+' をお気に入りに追加');
+  second.setAttribute('data-channel',c);
+  second.setAttribute('data-role','second');
   second.onclick=isFavorite?function(){removeFavorite(c)}:function(){addFavorite(c)};
 
   row.appendChild(watch);
@@ -263,6 +287,7 @@ function makeCard(c,isFavorite,withLive){
 }
 function renderFavorites(){
   var f=load(FAVORITES);
+  var focused=focusKey(favoritesEl);
   favoritesEl.innerHTML='';
   favoriteCount.textContent=String(f.length);
   favoritesEmpty.style.display=f.length?'none':'block';
@@ -275,10 +300,12 @@ function renderFavorites(){
   f.forEach(function(c){
     favoritesEl.appendChild(makeCard(c,true,true));
   });
+  restoreFocus(favoritesEl,focused);
   renderLiveMeta(f);
 }
 function renderRecent(){
   var r=load(RECENT),f=load(FAVORITES);
+  var focused=focusKey(recentEl);
   recentEl.innerHTML='';
   recentEmpty.style.display=r.length?'none':'block';
 
@@ -286,10 +313,12 @@ function renderRecent(){
     var row=makeCard(c,false,false);
     if(f.indexOf(c)!==-1){
       row.children[1].textContent='★';
+      row.children[1].setAttribute('aria-label',c+' はお気に入り登録済み');
       row.children[1].onclick=function(){setStatus(c+' はお気に入り登録済みです。')};
     }
     recentEl.appendChild(row);
   });
+  restoreFocus(recentEl,focused);
 }
 function renderLiveMeta(f){
   if(!f.length){
@@ -336,8 +365,10 @@ function fetchLiveState(channel){
   }).then(function(text){
     text=(text||'').trim();
     if(/offline/i.test(text))return 'offline';
-    if(!text||/not found|invalid|error/i.test(text))return 'unknown';
-    return 'live';
+    // Only an uptime such as "1 hour, 23 minutes" counts as LIVE; any other
+    // reply (errors, rate limits, unexpected text) stays unknown.
+    if(/\d+\s*(?:second|minute|hour|day|week)/i.test(text))return 'live';
+    return 'unknown';
   }).catch(function(){
     return 'unknown';
   });
@@ -390,6 +421,14 @@ document.getElementById('exportData').onclick=function(){
   a.click();
   setTimeout(function(){URL.revokeObjectURL(url)},1000);
 };
+function cleanList(items){
+  var out=[];
+  items.forEach(function(item){
+    var c=typeof item==='string'?normalize(item):'';
+    if(c&&out.indexOf(c)===-1)out.push(c);
+  });
+  return out;
+}
 document.getElementById('importData').onclick=function(){
   document.getElementById('importFile').click();
 };
@@ -401,8 +440,9 @@ document.getElementById('importFile').onchange=function(e){
     try{
       var d=JSON.parse(reader.result);
       if(!d||!Array.isArray(d.favorites)||!Array.isArray(d.recent))throw new Error('形式が違います');
-      save(FAVORITES,d.favorites.map(normalize).filter(Boolean));
-      save(RECENT,d.recent.map(normalize).filter(Boolean).slice(0,MAX_RECENT));
+      var favorites=cleanList(d.favorites).sort();
+      var recent=cleanList(d.recent).slice(0,MAX_RECENT);
+      if(!save(FAVORITES,favorites)||!save(RECENT,recent))return;
       liveState={};
       setStatus('設定を読み込みました。','ok');
       render();
