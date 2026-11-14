@@ -158,7 +158,13 @@ function load(key){
   }catch(e){return []}
 }
 function save(key,value){
-  try{localStorage.setItem(key,JSON.stringify(value))}catch(e){}
+  try{
+    localStorage.setItem(key,JSON.stringify(value));
+    return true;
+  }catch(e){
+    setStatus('保存に失敗しました: '+e.message,true);
+    return false;
+  }
 }
 function normalize(value){
   value=(value||'').trim();
@@ -246,6 +252,7 @@ function showLauncher(){
       }
     }
   }
+  if(Date.now()-lastLiveUpdate>=LIVE_REFRESH_MS)refreshLiveStatuses();
 }
 function showViewer(channel){
   if(viewingChannel===channel)return;
@@ -335,10 +342,20 @@ function sorted(items){
     return diff!==0?diff:a.localeCompare(b);
   });
 }
+function focusedChannelIn(el){
+  var active=document.activeElement;
+  return active&&el.contains(active)?active.getAttribute('data-channel'):'';
+}
 function renderList(el,empty,items){
+  // Rebuilding the list must not drop the remote's focus.
+  var focused=focusedChannelIn(el);
   el.innerHTML='';
   empty.style.display=items.length?'none':'block';
-  sorted(items).forEach(function(channel){el.appendChild(makeButton(channel))});
+  items.forEach(function(channel){
+    var button=makeButton(channel);
+    el.appendChild(button);
+    if(channel===focused)button.focus();
+  });
 }
 function renderLiveMeta(favorites){
   if(!favorites.length){
@@ -363,7 +380,8 @@ function render(){
   var favorites=load(FAVORITES);
   var recent=load(RECENT);
   favoriteCount.textContent=String(favorites.length);
-  renderList(favoritesEl,favoritesEmpty,favorites);
+  renderList(favoritesEl,favoritesEmpty,sorted(favorites));
+  // Recent keeps its most-recent-first order; the badge still shows LIVE.
   renderList(recentEl,recentEmpty,recent);
   renderLiveMeta(favorites);
 }
@@ -383,8 +401,10 @@ function fetchLiveState(channel){
   }).then(function(text){
     text=(text||'').trim();
     if(/offline/i.test(text))return 'offline';
-    if(!text||/not found|invalid|error/i.test(text))return 'unknown';
-    return 'live';
+    // Only an uptime such as "1 hour, 23 minutes" counts as LIVE; any other
+    // reply (errors, rate limits, unexpected text) stays unknown.
+    if(/\d+\s*(?:second|minute|hour|day|week)/i.test(text))return 'live';
+    return 'unknown';
   }).catch(function(){return 'unknown'});
 }
 function refreshLiveStatuses(){
@@ -397,7 +417,10 @@ function refreshLiveStatuses(){
   liveRefreshRunning=true;
   refreshLiveBtn.disabled=true;
   refreshLiveBtn.textContent='更新中…';
-  channels.forEach(function(channel){liveState[channel]='loading'});
+  // Keep the last known state while re-checking so badges and order stay still.
+  channels.forEach(function(channel){
+    if(!liveState[channel])liveState[channel]='loading';
+  });
   render();
 
   Promise.all(channels.map(function(channel){
